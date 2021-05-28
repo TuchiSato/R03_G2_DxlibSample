@@ -30,6 +30,9 @@ GAME_SCENE NextGameScene;	//次のゲームのシーン
 //プレイヤー
 CHARACTOR player;
 
+//ゴール
+CHARACTOR Goal;
+
 //画面の切り替え
 BOOL IsFadeOut = FALSE;		//フェードアウト
 BOOL IsFadeIn = FALSE;		//フェードイン
@@ -65,6 +68,11 @@ VOID ChangeProc(VOID);	//切り替え画面(処理)
 VOID ChangeDraw(VOID);	//切り替え画面(描画)
 
 VOID ChangeScene(GAME_SCENE scene);	//シーン切り替え
+
+VOID CollUpdatePlayer(CHARACTOR* chara);	//当たり判定の領域を更新
+VOID CollUpdate(CHARACTOR* chara);			//当たり判定
+
+BOOL OnCollRect(RECT a, RECT b);			//矩形と矩形の当たり判定
 
 // プログラムは WinMain から始まります
 //Windowsのプログラミング方法 = (WinAPI)で動いている！
@@ -127,6 +135,39 @@ int WINAPI WinMain(
 	player.y = GAME_HEIGHT / 2 - player.height / 2;	//中央寄せ
 	player.speed = 5;
 	player.IsDraw = TRUE;	//	描画できる！
+
+	//当たり判定を更新する
+	CollUpdate(&player);	//プレイヤーの当たり判定のアドレス
+
+	//ゴールの画像を読み込み
+	strcpyDx(Goal.path, ".\\Image\\Goal.png");	//パスのコピー
+	Goal.handle = LoadGraph(Goal.path);	//画像の読み込み
+
+	//画像が読み込めなかったときは、エラー(-1)が入る
+	if (Goal.handle == -1)
+	{
+		MessageBox(
+			GetMainWindowHandle(),	//メインのウィンドウハンドル
+			Goal.path,				//メッセージ本文
+			"画像読み込みエラー！",		//メッセージタイトル
+			MB_OK					//ボタン
+		);
+
+		DxLib_End();	//強制終了
+		return -1;		//エラー終了
+	}
+
+	//画像の幅と高さを取得
+	GetGraphSize(Goal.handle, &Goal.width, &Goal.height);
+
+	//ゴールを初期化
+	Goal.x = GAME_WIDTH - Goal.width;
+	Goal.y = 0;
+	Goal.speed = 500;	//スピード
+	Goal.IsDraw = TRUE;	//描画できる！
+
+	//当たり判定を更新する
+	CollUpdate(&Goal);
 
 	//無限ループ
 	while (1)
@@ -262,6 +303,7 @@ VOID Play(VOID)
 /// </summary>
 VOID PlayProc(VOID)
 {
+	/*
 	if (KeyClick(KEY_INPUT_RETURN) == TRUE)
 	{
 		//シーン切り替え
@@ -269,6 +311,45 @@ VOID PlayProc(VOID)
 
 		//エンド画面に切り替え
 		ChangeScene(GAME_SCENE_END);
+	}
+	*/
+
+
+	//プレイヤーの操作
+	if (KeyDown(KEY_INPUT_UP) == TRUE)
+	{
+		player.y -= player.speed;
+	}
+
+	if (KeyDown(KEY_INPUT_DOWN) == TRUE)
+	{
+		player.y += player.speed;
+	}
+
+	if (KeyDown(KEY_INPUT_LEFT) == TRUE)
+	{
+		player.x -= player.speed;
+	}
+
+	if (KeyDown(KEY_INPUT_RIGHT) == TRUE)
+	{
+		player.x += player.speed;
+	}
+
+	//当たり判定を更新する
+	CollUpdate(&player);
+
+	//ゴールの当たり判定を更新する
+	CollUpdate(&Goal);
+
+	//プレイヤーがゴールに当たったときは
+	if (OnCollRect(player.coll, Goal.coll) == TRUE)
+	{
+		//エンド画面に切り替え
+		ChangeScene(GAME_SCENE_END);
+
+		//処理を強制終了
+		return;
 	}
 
 	return;
@@ -285,6 +366,30 @@ VOID PlayDraw(VOID)
 		//画像を描画
 		DrawGraph(player.x, player.y, player.handle, TRUE);
 
+		//デバッグのときは、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(player.coll.left, player.coll.top, player.coll.right, player.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+
+		}
+
+	}
+
+	//ゴールを描画
+	if (Goal.IsDraw == TRUE)
+	{
+		//画像を描画
+		DrawGraph(Goal.x, Goal.y, Goal.handle, TRUE);
+
+		//デバッグのときは、当たり判定の領域を描画
+		if (GAME_DEBUG == TRUE)
+		{
+			//四角を描画
+			DrawBox(Goal.coll.left, Goal.coll.top, Goal.coll.right, Goal.coll.bottom,
+				GetColor(255, 0, 0), FALSE);
+		}
 	}
 
 	DrawString(0, 0, "プレイ画面", GetColor(0, 0, 0));
@@ -429,4 +534,60 @@ VOID ChangeDraw(VOID)
 
 	DrawString(0, 0, "切り替え画面", GetColor(0, 0, 0));
 	return;
+}
+
+/// <summary>
+/// 当たり判定の領域更新
+/// </summary>
+/// <param name="scene">当たり判定の領域</param>
+VOID CollUpdatePlayer(CHARACTOR* chara)
+{
+	chara->coll.left = chara->x + 20;					//当たり判定を微調整
+	chara->coll.top = chara->y + 30;					//当たり判定を微調整
+	chara->coll.right = chara->x + chara->width - 20;	//当たり判定を微調整
+	chara->coll.bottom = chara->y + chara->height - 20;	//当たり判定を微調整
+
+	return;
+}
+
+/// <summary>
+/// 当たり判定の領域更新
+/// </summary>
+/// <param name="chara">当たり判定の領域</param>
+VOID CollUpdate(CHARACTOR* chara)
+{
+	chara->coll.left = chara->x;
+	chara->coll.top = chara->y;
+
+	chara->coll.right = chara->x + chara->width;
+	chara->coll.bottom = chara->y + chara->height;
+
+	return;
+}
+
+
+/// <summary>
+/// 矩形と矩形の当たり判定
+/// </summary>
+/// <param name="a">矩形A</param>
+/// <param name="b">矩形B</param>
+/// <returns>あたったらTRUE/あたらないならFALSE</returns>
+BOOL OnCollRect(RECT a, RECT b)
+{
+	if (
+		a.left < b.right &&		//矩形Aの左辺X座標　<　矩形Bの右辺X座標　かつ
+		a.right >b.left &&		//矩形Aの右辺X座標　>　矩形Bの左辺X座標　かつ
+		a.top < b.bottom &&		//矩形Aの上辺Y座標　<　矩形Bの下辺Y座標　かつ
+		a.bottom > b.top		//矩形Aの下辺Y座標　>　矩形Bの上辺Y座標
+		)
+	{
+		//あたっているとき
+		return TRUE;
+
+	}
+	else
+	{
+		//あたってないとき
+		return FALSE;
+	}
 }
