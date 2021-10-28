@@ -385,7 +385,7 @@ VOID GameInit(VOID)
 	//プレイヤーを初期化
 	player.img.x = GAME_WIDTH / 2 - player.img.width / 2;	//中央寄せ
 	player.img.y = GAME_HEIGHT / 2 - player.img.height / 2;	//中央寄せ
-	player.speed = 500;		//スピード
+	player.speed = 250;		//スピード
 	player.img.IsDraw = TRUE;	//描画できる！
 
 	//当たり判定を更新する
@@ -402,7 +402,7 @@ VOID GameInit(VOID)
 
 	//タイトルロゴの位置を決める
 	TitleLogo.x = GAME_WIDTH / 2 - TitleLogo.width / 2;	//中央揃え
-	TitleLogo.y = 100;
+	TitleLogo.y = 0;
 
 	//PushEnterの位置を決める
 	TitleEnter.x = GAME_WIDTH / 2 - TitleEnter.width / 2;	//中央揃え
@@ -839,8 +839,8 @@ VOID CollUpdatePlayer(CHARACTOR* chara)
 	chara->coll.left = chara->img.x;					//当たり判定を微調整
 	chara->coll.top = chara->img.y;						//当たり判定を微調整
 
-	chara->coll.right = chara->img.x + chara->img.width - 50;		//当たり判定を微調整
-	chara->coll.bottom = chara->img.y + chara->img.height - 50;	//当たり判定を微調整
+	chara->coll.right = chara->img.x + chara->img.width - 0;		//当たり判定を微調整
+	chara->coll.bottom = chara->img.y + chara->img.height - 70;	//当たり判定を微調整
 
 	return;
 }
